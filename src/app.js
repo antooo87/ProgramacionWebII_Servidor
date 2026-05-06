@@ -1,44 +1,62 @@
 import express from 'express'
 import helmet from 'helmet'
-import mongoSanitize from 'express-mongo-sanitize'
 import { rateLimit } from 'express-rate-limit'
-import errorHandler from './middleware/error-handler.js'
-import userRoutes from './routes/user.routes.js'
+import mongoose from 'mongoose'
+
+import errorHandler       from './middleware/error-handler.js'
+import userRoutes         from './routes/user.routes.js'
+import clientRoutes       from './routes/client.routes.js'
+import projectRoutes      from './routes/project.routes.js'
+import deliveryNoteRoutes from './routes/deliverynote.routes.js'
+import swaggerUi          from 'swagger-ui-express'
+import swaggerSpec        from './config/swagger.js'
 
 const app = express()
 
+// ─── Seguridad ────────────────────────────────────────
 app.use(helmet())
-//app.use(mongoSanitize())
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: 'Demasiadas peticiones, intenta más tarde'
 })
-//app.use(limiter)
+// app.use(limiter) // actívalo cuando vayas a producción
 
+// ─── Body parser ──────────────────────────────────────
 app.use(express.json())
 
-app.use((req, res, next) => {
-  console.log('🔥 MIDDLEWARE CHECK')
-  console.log('req.query:', req.query)
-  next()
-})
-
-
-// Servir la carpeta uploads como archivos estáticos
-// Así los logos son accesibles desde http://localhost:3000/uploads/logo.jpg
+// ─── Archivos estáticos ───────────────────────────────
 app.use('/uploads', express.static('uploads'))
 
-// Rutas de la API — todas empiezan por /api/user
-app.use('/api/user', userRoutes)
+// ─── Health check ─────────────────────────────────────
+app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  res.status(200).json({
+    status:    'ok',
+    db:        dbState,
+    uptime:    process.uptime(),
+    timestamp: new Date().toISOString()
+  })
+})
 
-// Ruta de prueba
+// ─── Ruta de prueba ───────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ message: 'BildyApp API funcionando' })
 })
 
-// El error handler SIEMPRE va al final
+// ─── Swagger UI ───────────────────────────────────────
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+
+// ─── Rutas de la API ──────────────────────────────────
+app.use('/api/user',         userRoutes)
+app.use('/api/client',       clientRoutes)
+app.use('/api/project',      projectRoutes)
+app.use('/api/deliverynote', deliveryNoteRoutes)
+
+// ─── Error handler — SIEMPRE AL FINAL ─────────────────
+// Express lo reconoce como error handler porque tiene 4 parámetros (err, req, res, next)
+// Si va antes de las rutas, los errores de esas rutas no llegan aquí
 app.use(errorHandler)
 
 export default app
