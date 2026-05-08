@@ -1,35 +1,38 @@
-import express from 'express'
-import helmet from 'helmet'
-import { rateLimit } from 'express-rate-limit'
-import mongoose from 'mongoose'
-
-import errorHandler       from './middleware/error-handler.js'
-import userRoutes         from './routes/user.routes.js'
-import clientRoutes       from './routes/client.routes.js'
-import projectRoutes      from './routes/project.routes.js'
+import express         from 'express'
+import helmet          from 'helmet'
+import mongoSanitize   from 'express-mongo-sanitize'
+import { rateLimit }   from 'express-rate-limit'
+import mongoose        from 'mongoose'
+import errorHandler    from './middleware/error-handler.js'
+import userRoutes      from './routes/user.routes.js'
+import clientRoutes    from './routes/client.routes.js'
+import projectRoutes   from './routes/project.routes.js'
 import deliveryNoteRoutes from './routes/deliverynote.routes.js'
-import swaggerUi          from 'swagger-ui-express'
-import swaggerSpec        from './config/swagger.js'
+import swaggerUi       from 'swagger-ui-express'
+import swaggerSpec     from './config/swagger.js'
 
 const app = express()
 
-// ─── Seguridad ────────────────────────────────────────
 app.use(helmet())
 
+// mongoSanitize elimina caracteres $ y . de los datos de entrada
+// Protege contra ataques de inyección NoSQL
+// Ejemplo de ataque sin esto: { "email": { "$gt": "" } } podría bypassear login
+app.use(mongoSanitize())
+
+// Rate limiter: máximo 100 peticiones por IP cada 15 minutos
+// Protege contra ataques de fuerza bruta en login/register
+// Sin esto alguien puede probar millones de contraseñas automáticamente
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  message: 'Demasiadas peticiones, intenta más tarde'
+  message: { status: 'error', message: 'Demasiadas peticiones, intenta más tarde' }
 })
-// app.use(limiter) // actívalo cuando vayas a producción
+app.use(limiter)
 
-// ─── Body parser ──────────────────────────────────────
 app.use(express.json())
-
-// ─── Archivos estáticos ───────────────────────────────
 app.use('/uploads', express.static('uploads'))
 
-// ─── Health check ─────────────────────────────────────
 app.get('/health', (req, res) => {
   const dbState = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   res.status(200).json({
@@ -40,23 +43,16 @@ app.get('/health', (req, res) => {
   })
 })
 
-// ─── Ruta de prueba ───────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ message: 'BildyApp API funcionando' })
 })
 
-// ─── Swagger UI ───────────────────────────────────────
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
-
-// ─── Rutas de la API ──────────────────────────────────
 app.use('/api/user',         userRoutes)
 app.use('/api/client',       clientRoutes)
 app.use('/api/project',      projectRoutes)
 app.use('/api/deliverynote', deliveryNoteRoutes)
 
-// ─── Error handler — SIEMPRE AL FINAL ─────────────────
-// Express lo reconoce como error handler porque tiene 4 parámetros (err, req, res, next)
-// Si va antes de las rutas, los errores de esas rutas no llegan aquí
 app.use(errorHandler)
 
-export default app
+export default apps
