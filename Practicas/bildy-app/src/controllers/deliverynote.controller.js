@@ -195,27 +195,85 @@ export const signDeliveryNote = async (req, res, next) => {
     const companyId = req.user.company
 
     const albaran = await DeliveryNote.findOne({ _id: id, company: companyId })
+      .populate('user',    'name email')
+      .populate('client',  'name cif')
+      .populate('project', 'name code')
+
     if (!albaran) throw new AppError('Albarán no encontrado', 404)
-
     if (albaran.signed) throw new AppError('Este albarán ya está firmado', 400)
-
     if (!req.file) throw new AppError('La firma es obligatoria', 400)
 
-    // Subimos la imagen de firma a Cloudinary
-    const uploadResult = await new Promise((resolve, reject) => {
+    // 1. Subir imagen de firma a Cloudinary
+    const signatureUpload = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { folder: 'signatures', resource_type: 'image' },
-        (error, result) => {
-          if (error) reject(error)
-          else resolve(result)
-        }
+        (error, result) => error ? reject(error) : resolve(result)
       )
-      stream.end(req.file.buffer)
+      stream.end(req.file.buffer) // buffer disponible gracias a memoryStorage
     })
 
+    // 2. Generar el PDF en memoria con pdfkit
+    // En vez de pipe a res, lo guardamos en un Buffer
+    const pdfBuffer = await new Promise((resolve, reject) => {
+      const doc    = new PDFDocument({ margin: 50 })
+      const chunks = []
+
+      // Cada vez que pdfkit genera un trozo de PDF lo guardamos
+      doc.on('data',  chunk => chunks.push(chunk))
+      // Cuando termina, unimos todos los trozos en un Buffer
+      doc.on('end',   () => resolve(Buffer.concat(chunks)))
+      doc.on('error', reject)
+
+      // Contenido del PDF
+      doc.fontSize(20).font('Helvetica-Bold').text('ALBARÁN', { align: 'center' })
+      doc.moveDown()
+      doc.fontSize(12).font('Helvetica')
+      doc.text(`Número:  ${albaran._id}`)
+      doc.text(`Fecha:   ${albaran.workDate.toLocaleDateString('es-ES')}`)
+      doc.text(`Tipo:    ${albaran.format === 'hours' ? 'Horas' : 'Material'}`)
+      doc.moveDown()
+      doc.font('Helvetica-Bold').text('Cliente:')
+      doc.font('Helvetica')
+      doc.text(`Nombre: ${albaran.client?.name || '-'}`)
+      doc.text(`CIF:    ${albaran.client?.cif  || '-'}`)
+      doc.moveDown()
+      doc.font('Helvetica-Bold').text('Proyecto:')
+      doc.font('Helvetica')
+      doc.text(`Nombre: ${albaran.project?.name || '-'}`)
+      doc.text(`Código: ${albaran.project?.code || '-'}`)
+      doc.moveDown()
+
+      if (albaran.format === 'hours') {
+        doc.font('Helvetica-Bold').text('Horas trabajadas:')
+        doc.font('Helvetica')
+        albaran.hoursEntries.forEach(e => doc.text(`  • ${e.worker}: ${e.hours}h`))
+      } else {
+        doc.font('Helvetica-Bold').text('Materiales:')
+        doc.font('Helvetica')
+        albaran.materialEntries.forEach(e => doc.text(`  • ${e.name}: ${e.quantity} ${e.unit || ''}`))
+      }
+
+      doc.moveDown()
+      doc.font('Helvetica-Bold').text('Firma:')
+      doc.font('Helvetica').text(`Firmado el: ${new Date().toLocaleDateString('es-ES')}`)
+
+      doc.end() // dispara el evento 'end'
+    })
+
+    // 3. Subir el PDF a Cloudinary
+    const pdfUpload = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'pdfs', resource_type: 'raw', format: 'pdf' },
+        (error, result) => error ? reject(error) : resolve(result)
+      )
+      stream.end(pdfBuffer)
+    })
+
+    // 4. Guardar todo en la base de datos
     albaran.signed       = true
-    albaran.signatureUrl = uploadResult.secure_url
+    albaran.signatureUrl = signatureUpload.secure_url
     albaran.signedAt     = new Date()
+    albaran.pdfUrl       = pdfUpload.secure_url  // ← esto faltaba antes
     await albaran.save()
 
     getIO().to(companyId.toString()).emit('deliverynote:signed', { data: albaran })
