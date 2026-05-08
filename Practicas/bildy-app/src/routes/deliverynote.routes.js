@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import express from 'express'
 import authMiddleware from '../middleware/auth.middleware.js'
 import validate from '../middleware/validate.js'
 import upload             from '../middleware/upload.js' // tu Multer ya configurado
@@ -12,7 +12,7 @@ import {
   deleteDeliveryNote
 } from '../controllers/deliverynote.controller.js'
 
-const router = Router()
+const router = express.Router()
 
 // OJO: /pdf/:id ANTES que /:id (misma regla de siempre)
 router.get('/pdf/:id',       authMiddleware, downloadPDF)

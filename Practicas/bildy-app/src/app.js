@@ -55,4 +55,4 @@ app.use('/api/deliverynote', deliveryNoteRoutes)
 
 app.use(errorHandler)
 
-export default apps
+export default app

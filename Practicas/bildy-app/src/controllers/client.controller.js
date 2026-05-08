@@ -20,7 +20,7 @@ export const createClient = async (req, res, next) => {
     })
 
     // Notificamos en tiempo real a todos los usuarios de la empresa
-    getIO().to(companyId.toString()).emit('client:new', { data: nuevoCliente })
+   try { getIO().to(companyId.toString()).emit('client:new', { data: nuevoCliente }) } catch {}
 
     res.status(201).json({ message: 'Cliente creado', data: nuevoCliente })
 

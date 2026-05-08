@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import express from 'express'
 
 // Importamos todos los controllers
 import {
@@ -33,7 +33,7 @@ import {
   inviteSchema
 } from '../validators/user.validator.js'
 
-const router = Router()
+const router = express.Router()
 
 // -----------------------------------------------
 // RUTAS PÚBLICAS — no requieren token JWT

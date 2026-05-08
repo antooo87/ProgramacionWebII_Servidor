@@ -28,7 +28,7 @@ export const createDeliveryNote = async (req, res, next) => {
       workDate: workDate ? new Date(workDate) : new Date()
     })
 
-    getIO().to(companyId.toString()).emit('deliverynote:new', { data: albaran })
+    try { getIO().to(companyId.toString()).emit('deliverynote:new', { data: albaran }) } catch {}
 
     res.status(201).json({ message: 'Albarán creado', data: albaran })
 
@@ -276,7 +276,7 @@ export const signDeliveryNote = async (req, res, next) => {
     albaran.pdfUrl       = pdfUpload.secure_url  // ← esto faltaba antes
     await albaran.save()
 
-    getIO().to(companyId.toString()).emit('deliverynote:signed', { data: albaran })
+   try { getIO().to(companyId.toString()).emit('deliverynote:new', { data: albaran }) } catch {}
 
     res.status(200).json({ message: 'Albarán firmado', data: albaran })
 

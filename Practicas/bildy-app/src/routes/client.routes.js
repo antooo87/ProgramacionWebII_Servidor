@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import express from 'express'
 import authMiddleware from '../middleware/auth.middleware.js'
 import validate from '../middleware/validate.js'
 import { createClientSchema, updateClientSchema } from '../validators/client.validator.js'
@@ -12,7 +12,7 @@ import {
   restoreClient
 } from '../controllers/client.controller.js'
 
-const router = Router()
+const router = express.Router()
 
 /**
  * @swagger

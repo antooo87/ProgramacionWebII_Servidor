@@ -38,7 +38,7 @@ beforeAll(async () => {
 
   // Generamos el token con los IDs reales de la BD de test
   const { token: t } = generateTestToken({
-    _id:     userId.toString(),
+    id:     userId.toString(),
     company: companyId.toString()
   })
   token = t

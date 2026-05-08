@@ -22,7 +22,7 @@ beforeAll(async () => {
 
   await Company.create({ _id: companyId, owner: userId, name: 'Empresa A', cif: 'A11111111' })
   await User.create({
-    _id: userId, email: 'a@test.com', password: 'hash',
+    _id: userId, email: 'a@test.com', password: 'hashedpassword123',
     name: 'User A', company: companyId, status: 'verified', role: 'admin'
   })
 
@@ -48,7 +48,7 @@ beforeAll(async () => {
   const userIdB     = new mongoose.Types.ObjectId()
   await Company.create({ _id: companyIdB, owner: userIdB, name: 'Empresa B', cif: 'B99999999' })
   await User.create({
-    _id: userIdB, email: 'b@test.com', password: 'hash',
+    _id: userIdB, email: 'b@test.com', password: 'hashedpassword123',
     name: 'User B', company: companyIdB, status: 'verified', role: 'admin'
   })
   const { token: tb } = generateTestToken({

@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import express from 'express'
 import authMiddleware from '../middleware/auth.middleware.js'
 import validate from '../middleware/validate.js'
 import { createProjectSchema, updateProjectSchema } from '../validators/project.validator.js'
@@ -12,7 +12,7 @@ import {
   restoreProject
 } from '../controllers/project.controller.js'
 
-const router = Router()
+const router = express.Router()
 
 // OJO al orden: /archived ANTES que /:id
 router.get('/archived',       authMiddleware, getArchivedProjects)
