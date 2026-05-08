@@ -5,7 +5,7 @@ import mongoose from 'mongoose'
 // No necesitas hacer login real — generas el token directamente
 export const generateTestToken = (overrides = {}) => {
   const payload = {
-    _id:     new mongoose.Types.ObjectId().toString(),
+    id:     new mongoose.Types.ObjectId().toString(),
     company: new mongoose.Types.ObjectId().toString(),
     role:    'admin',
     ...overrides  // permite sobreescribir campos: generateTestToken({ role: 'guest' })
