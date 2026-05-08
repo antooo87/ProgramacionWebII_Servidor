@@ -52,3 +52,7 @@ El aislamiento multi-empresa funciona porque todos los `findOne` y `find` incluy
 3. Tracé el flujo de `signDeliveryNote` → `downloadPDF` y vi que `pdfUrl` nunca se asignaba.
 4. Activé `mongoSanitize` y el rate limiter que estaban comentados en `app.js`.
 5. Escribí los 8 tests de `deliverynote.test.js` cubriendo los escenarios críticos.
+6. Corregido export default en app.js (apps → app).
+7. Movido new IncomingWebhook() dentro de la función en slack.service.js para evitar error al arrancar sin SLACK_WEBHOOK_URL.
+8. Cambiado import { Router } from 'express' por import express y express.Router() en todas las rutas para compatibilidad con Jest ESM.
+9. Protegidas llamadas a getIO() con try/catch en client.controller.js y deliverynote.controller.js para entorno de tests sin Socket.IO.
